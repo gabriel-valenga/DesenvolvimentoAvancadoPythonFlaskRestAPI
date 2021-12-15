@@ -3,7 +3,8 @@ from sqlalchemy import (create_engine,
                         Integer,
                         String,
                         ForeignKey,
-                        Enum)
+                        Enum,
+                        Boolean)
 from sqlalchemy.orm import scoped_session, sessionmaker, relationship
 from sqlalchemy.ext.declarative import declarative_base
 import enum
@@ -27,14 +28,15 @@ class StatusAtividade(str, enum.Enum):
             return True
 
 
-class Pessoas(Base):
-    __tablename__ = 'pessoas'
+class TabelaBase(Base):
+    """
+    Classe abstrata que sera herdada pelas tabelas
+    """
+    __abstract__ = True
     id = Column(Integer, primary_key=True)
-    nome = Column(String(40), index=True)
-    idade = Column(Integer)
 
     def __repr__(self):
-        return f'<Pessoa {self.nome} >'
+        return f'{self.nome}'
 
     def save(self):
         db_session.add(self)
@@ -45,29 +47,34 @@ class Pessoas(Base):
         db_session.commit()
 
 
-class Atividades(Base):
+class Pessoas(TabelaBase):
+    __tablename__ = 'pessoas'
+    nome = Column(String(40), index=True)
+    idade = Column(Integer)
+
+
+class Atividades(TabelaBase):
     __tablename__ = 'atividades'
-    id = Column(Integer, primary_key=True)
     nome = Column(String(80))
     pessoa_id = Column(Integer, ForeignKey('pessoas.id'))
     status = Column(Enum(StatusAtividade), default=StatusAtividade.pendente)
     pessoa = relationship('Pessoas')
 
+
+class Usuarios(TabelaBase):
+    __tablename__ = 'usuarios'
+    login = Column(String(20), unique=True)
+    senha = Column(String(20))
+    ativo = Column(Boolean, default=True)
+
     def __repr__(self):
-        return f'<Atividade {self.nome} >'
-
-    def save(self):
-        db_session.add(self)
-        db_session.commit()
-
-    def delete(self):
-        db_session.delete(self)
-        db_session.commit()
+        return f'{self.login}'
 
 
 def init_db():
     Base.metadata.create_all(bind=engine, tables=[Pessoas.__table__,
-                                                  Atividades.__table__])
+                                                  Atividades.__table__,
+                                                  Usuarios.__table__])
 
 
 if __name__ == '__main__':
